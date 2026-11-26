@@ -11,10 +11,12 @@ permissions:
 
 env:
   PROJ: zone-survival/zone
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
 jobs:
   native:
     strategy:
+    fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
