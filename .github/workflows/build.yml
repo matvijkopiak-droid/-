@@ -9,12 +9,18 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  PROJ: zone-survival/zone
+
 jobs:
   native:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: zone-survival/zone
     steps:
       - uses: actions/checkout@v4
       - name: Linux deps
@@ -33,10 +39,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: zone-${{ runner.os }}
-          path: dist
+          path: zone-survival/zone/dist
 
   web:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: zone-survival/zone
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
@@ -51,7 +60,7 @@ jobs:
           cp build-web/zone.js build-web/zone.wasm build-web/zone.data site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: zone-survival/zone/site
 
   deploy:
     needs: web
