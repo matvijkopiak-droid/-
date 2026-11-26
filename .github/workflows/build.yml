@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  native:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist/zone
+          if [ "$RUNNER_OS" = "Windows" ]; then cp build/Release/zone.exe dist/zone/; else cp build/zone dist/zone/; fi
+          cp -r assets dist/zone/assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zone-${{ runner.os }}
+          path: dist
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.56
+      - name: Build web
+        run: |
+          emcmake cmake -B build-web -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-web
+          mkdir -p site
+          cp build-web/zone.html site/index.html
+          cp build-web/zone.js build-web/zone.wasm build-web/zone.data site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
